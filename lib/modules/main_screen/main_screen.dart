@@ -1,3 +1,6 @@
+import 'dart:developer';
+import 'dart:ui';
+
 import 'package:domenos_counter/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -11,22 +14,32 @@ class MainScreen extends StatefulWidget {
 
 enum TeamLarger { teamALarger, teamBLarger }
 
+enum TeamToAdd { addToTeamA, addToTeamB }
+
 class _MainScreenState extends State<MainScreen> {
   TeamLarger? teamLarger;
-  var teamAController = TextEditingController();
 
-  var teamBController = TextEditingController();
+  TeamToAdd? teamToAdd;
+
   var finalScore = TextEditingController();
+
   num teamA = 0;
   num teamB = 0;
+  num adding = 0;
+
+  void addingToTeam(int whatToAdd) {
+    adding = whatToAdd;
+    if (teamToAdd == TeamToAdd.addToTeamA) {
+      teamA += adding;
+      compare();
+    }
+    if (teamToAdd == TeamToAdd.addToTeamB) {
+      teamB += adding;
+      compare();
+    }
+  }
 
   void compare() {
-    if (teamAController.text.isNotEmpty) {
-      teamA = int.parse(teamAController.text);
-    }
-    if (teamBController.text.isNotEmpty) {
-      teamB = int.parse(teamBController.text);
-    }
     num _finalScore = int.parse(finalScore.text);
     if (teamA > teamB) {
       teamLarger = TeamLarger.teamALarger;
@@ -35,7 +48,6 @@ class _MainScreenState extends State<MainScreen> {
     } else {
       teamLarger = null;
     }
-
     if (teamA >= _finalScore) {
       showWinner('Team A wins');
     } else if (teamB >= _finalScore) {
@@ -64,11 +76,68 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void showBottomSheetToAdd() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        backgroundColor: Colors.transparent,
+        alignment: Alignment.center,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20.0),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+            child: Container(
+              alignment: Alignment.center,
+              clipBehavior: Clip.antiAliasWithSaveLayer,
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(.6),
+              ),
+              padding: const EdgeInsets.all(15),
+              child: TextFormField(
+                style: const TextStyle(
+                  fontSize: 40,
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+                keyboardType: TextInputType.number,
+                onFieldSubmitted: (value) {
+                  addingToTeam(int.parse(value));
+                  log(adding.toString());
+                  setState(() {});
+                },
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: '00',
+                  hintStyle: const TextStyle(
+                    fontSize: 30,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  fillColor: Colors.white,
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(
+                      40,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void reset() {
     teamLarger = null;
-    teamAController.text = '';
     finalScore.text = '';
-    teamBController.text = '';
+    adding = 0;
     teamA = 0;
     teamB = 0;
     setState(() {});
@@ -80,7 +149,7 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         title: const Text(
-          'final Score',
+          'Domineos Counter',
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -162,49 +231,42 @@ class _MainScreenState extends State<MainScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 140,
-                          child: TextFormField(
-                            style: TextStyle(
-                              color: teamLarger == TeamLarger.teamALarger
-                                  ? Colors.green
-                                  : Colors.grey,
-                              fontSize: 70,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            keyboardType: TextInputType.number,
-                            controller: teamAController,
-                            onChanged: (value) {
-                              compare();
-                              setState(() {});
-                            },
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide.none,
-                              ),
-                              hintText: '00',
-                              hintStyle: TextStyle(
-                                fontSize: 70,
-                                color: Colors.grey,
+                    child: InkWell(
+                      onTap: () {
+                        teamToAdd = TeamToAdd.addToTeamA;
+                        showBottomSheetToAdd();
+                      },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 140,
+                            child: Text(
+                              teamA.toString(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: teamLarger != null
+                                    ? teamLarger == TeamLarger.teamALarger
+                                        ? Colors.green
+                                        : Colors.grey
+                                    : Colors.grey,
+                                fontSize: 40,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-                        15.h,
-                        const Text(
-                          'Team A',
-                          style: TextStyle(
-                            fontSize: 30,
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+                          15.h,
+                          const Text(
+                            'Team A',
+                            style: TextStyle(
+                              fontSize: 30,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   Container(
@@ -212,49 +274,42 @@ class _MainScreenState extends State<MainScreen> {
                     color: Colors.grey,
                   ),
                   Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 140,
-                          child: TextFormField(
-                            style: TextStyle(
-                              color: teamLarger == TeamLarger.teamBLarger
-                                  ? Colors.green
-                                  : Colors.grey,
-                              fontSize: 70,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            keyboardType: TextInputType.number,
-                            controller: teamBController,
-                            onChanged: (value) {
-                              compare();
-                              setState(() {});
-                            },
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide.none,
-                              ),
-                              hintText: '00',
-                              hintStyle: TextStyle(
-                                fontSize: 70,
-                                color: Colors.grey,
+                    child: InkWell(
+                      onTap: () {
+                        teamToAdd = TeamToAdd.addToTeamB;
+                        showBottomSheetToAdd();
+                      },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 140,
+                            child: Text(
+                              teamB.toString(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: teamLarger != null
+                                    ? teamLarger == TeamLarger.teamBLarger
+                                        ? Colors.green
+                                        : Colors.grey
+                                    : Colors.grey,
+                                fontSize: 40,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-                        15.h,
-                        const Text(
-                          'Team B',
-                          style: TextStyle(
-                            fontSize: 30,
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+                          15.h,
+                          const Text(
+                            'Team B',
+                            style: TextStyle(
+                              fontSize: 30,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
