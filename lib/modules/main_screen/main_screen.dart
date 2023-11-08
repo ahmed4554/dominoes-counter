@@ -1,9 +1,13 @@
-import 'dart:developer';
-import 'dart:ui';
+import 'dart:io';
 
+import 'package:domenos_counter/business_logic/cubit/cubit/history_cubit.dart';
 import 'package:domenos_counter/extensions.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import '../../components/components.dart';
+import '../../constants/colors.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -12,142 +16,148 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-enum TeamLarger { teamALarger, teamBLarger }
-
-enum TeamToAdd { addToTeamA, addToTeamB }
-
 class _MainScreenState extends State<MainScreen> {
-  TeamLarger? teamLarger;
+  BannerAd? _bannerAd;
+  bool _isLoaded = false;
+  late AdSize adSize;
 
-  TeamToAdd? teamToAdd;
-
-  var finalScore = TextEditingController();
-
-  num teamA = 0;
-  num teamB = 0;
-  num adding = 0;
-
-  void addingToTeam(int whatToAdd) {
-    adding = whatToAdd;
-    if (teamToAdd == TeamToAdd.addToTeamA) {
-      teamA += adding;
-      compare();
-    }
-    if (teamToAdd == TeamToAdd.addToTeamB) {
-      teamB += adding;
-      compare();
-    }
+  late double screenWidth, screenHeight;
+  void initVars() {
+    screenWidth = MediaQuery.of(context).size.width;
+    screenHeight = MediaQuery.of(context).size.height;
+    adSize = AdSize(height: screenHeight.floor(), width: screenWidth.floor());
   }
 
-  void compare() {
-    num _finalScore = int.parse(finalScore.text);
-    if (teamA > teamB) {
-      teamLarger = TeamLarger.teamALarger;
-    } else if (teamB > teamA) {
-      teamLarger = TeamLarger.teamBLarger;
-    } else {
-      teamLarger = null;
-    }
-    if (teamA >= _finalScore) {
-      showWinner('Team A wins');
-    } else if (teamB >= _finalScore) {
-      showWinner('Team B wins');
-    }
+  @override
+  void initState() {
+    loadAd();
+    super.initState();
   }
 
-  void showWinner(String winner) {
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
-        children: [
-          LottieBuilder.asset('assets/lotties/winner.json'),
-          20.h,
-          Text(
-            winner,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+  // TODO: replace this test ad unit with your own ad unit.
+  final adUnitId = Platform.isAndroid
+      ? 'ca-app-pub-3940256099942544/6300978111'
+      : 'ca-app-pub-3940256099942544/2934735716';
+
+  /// Loads a banner ad.
+  void loadAd() {
+    _bannerAd = BannerAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        // Called when an ad is successfully received.
+        onAdLoaded: (ad) {
+          debugPrint('$ad loaded.');
+          setState(() {
+            _isLoaded = true;
+          });
+        },
+        // Called when an ad request failed.
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('BannerAd failed to load: $err');
+          // Dispose the ad here to free resources.
+          ad.dispose();
+        },
       ),
-    );
-  }
-
-  void showBottomSheetToAdd() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.0),
-        ),
-        backgroundColor: Colors.transparent,
-        alignment: Alignment.center,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20.0),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-            child: Container(
-              alignment: Alignment.center,
-              clipBehavior: Clip.antiAliasWithSaveLayer,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(.6),
-              ),
-              padding: const EdgeInsets.all(15),
-              child: TextFormField(
-                style: const TextStyle(
-                  fontSize: 40,
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                ),
-                keyboardType: TextInputType.number,
-                onFieldSubmitted: (value) {
-                  addingToTeam(int.parse(value));
-                  log(adding.toString());
-                  setState(() {});
-                },
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: '00',
-                  hintStyle: const TextStyle(
-                    fontSize: 30,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide.none,
-                    borderRadius: BorderRadius.circular(
-                      40,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void reset() {
-    teamLarger = null;
-    finalScore.text = '';
-    adding = 0;
-    teamA = 0;
-    teamB = 0;
-    setState(() {});
+    )..load();
   }
 
   @override
   Widget build(BuildContext context) {
+    initVars();
     return Scaffold(
+      extendBody: true,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          BlocProvider.of<HistoryCubit>(context).addToDataBase();
+        },
+        backgroundColor: primary,
+        child: const Icon(
+          Icons.add,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        notchMargin: 10,
+        shape: const CircularNotchedRectangle(),
+        height: 60,
+        color: primary,
+        child: Row(
+          children: [
+            20.w,
+            InkWell(
+              onTap: () {
+                BlocProvider.of<HistoryCubit>(context).changeScreen(0);
+              },
+              child: const SizedBox(
+                width: 100,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.home,
+                      color: Colors.white,
+                    ),
+                    Text('Home'),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(),
+            InkWell(
+              onTap: () {
+                BlocProvider.of<HistoryCubit>(context).getHistory();
+                BlocProvider.of<HistoryCubit>(context).changeScreen(1);
+              },
+              child: const SizedBox(
+                width: 100,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.menu_rounded,
+                      color: Colors.white,
+                    ),
+                    Text('History'),
+                  ],
+                ),
+              ),
+            ),
+            20.w,
+          ],
+        ),
+      ),
+      drawer: Drawer(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 80),
+          child: Column(
+            children: [
+              const Text(
+                'Choose A Color To App',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              30.h,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(
+                    colors.length,
+                    (index) => GestureDetector(
+                          onTap: () {
+                            primary = colors[index];
+                            setState(() {});
+                          },
+                          child: BuildColorPalletItem(
+                            color: colors[index],
+                          ),
+                        )),
+              ),
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(
-        backgroundColor: Colors.orange,
+        backgroundColor: primary,
         title: const Text(
           'Domineos Counter',
           style: TextStyle(
@@ -159,164 +169,55 @@ class _MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              reset();
+              if (BlocProvider.of<HistoryCubit>(context).currentIndex == 0) {
+                print('homescreen');
+                BlocProvider.of<HistoryCubit>(context).reset();
+              } else {
+                print('history screen');
+                BlocProvider.of<HistoryCubit>(context).clearHistory();
+              }
             },
-            icon: Icon(
+            icon: const Icon(
               Icons.restore_rounded,
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            20.h,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      body: BlocBuilder<HistoryCubit, HistoryState>(
+        buildWhen: (previous, current) {
+          if (previous == current) {
+            return false;
+          } else {
+            return true;
+          }
+        },
+        builder: (context, state) {
+          return SingleChildScrollView(
+            child: Stack(
               children: [
-                const Text(
-                  'final Score',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                15.w,
-                Material(
-                  borderRadius: BorderRadius.circular(20),
-                  elevation: 4,
-                  color: Colors.black38,
-                  child: SizedBox(
-                    width: 140,
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(
-                        fontSize: 30,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      controller: finalScore,
-                      onEditingComplete: () {
-                        compare();
-                        setState(() {});
-                      },
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 15,
-                        ),
-                        fillColor: Colors.orange,
-                        filled: true,
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        hintText: '00',
-                        hintStyle: TextStyle(
-                          fontSize: 30,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                if (_bannerAd != null)
+                  Positioned(
+                    bottom: 80,
+                    child: SizedBox(
+                      width: _bannerAd!.size.width.toDouble(),
+                      height: _bannerAd!.size.height.toDouble() ,
+                      child: AdWidget(ad: _bannerAd!),
                     ),
                   ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    20.h,
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height - 150,
+                      child: BlocProvider.of<HistoryCubit>(context).widget,
+                    ),
+                  ],
                 ),
               ],
             ),
-            40.h,
-            SizedBox(
-              height: MediaQuery.of(context).size.height * .5,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        teamToAdd = TeamToAdd.addToTeamA;
-                        showBottomSheetToAdd();
-                      },
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 140,
-                            child: Text(
-                              teamA.toString(),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: teamLarger != null
-                                    ? teamLarger == TeamLarger.teamALarger
-                                        ? Colors.green
-                                        : Colors.grey
-                                    : Colors.grey,
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          15.h,
-                          const Text(
-                            'Team A',
-                            style: TextStyle(
-                              fontSize: 30,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 2,
-                    color: Colors.grey,
-                  ),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        teamToAdd = TeamToAdd.addToTeamB;
-                        showBottomSheetToAdd();
-                      },
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 140,
-                            child: Text(
-                              teamB.toString(),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: teamLarger != null
-                                    ? teamLarger == TeamLarger.teamBLarger
-                                        ? Colors.green
-                                        : Colors.grey
-                                    : Colors.grey,
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          15.h,
-                          const Text(
-                            'Team B',
-                            style: TextStyle(
-                              fontSize: 30,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
+          );
+        },
       ),
     );
   }

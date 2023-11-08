@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "864617191147",
+    "project_id": "dominoes-counter",
+    "storage_bucket": "dominoes-counter.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864617191147:android:24e6f510f04e2b5e34d0ae",
+        "android_client_info": {
+          "package_name": "com.example.domenos_counter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrR0tmg94HFU9w03YsXwMd50nu4k0ys_Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-3766323827640209~3104000474"
+    }
+  ],
+  "configuration_version": "1"
+}
